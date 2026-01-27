@@ -1,0 +1,112 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', serif;
+}
+
+:root {
+  /* Elegant Steakhouse Palette (Light Mode) */
+  --bg-page: #FDFBF7;
+  /* Cream/Off-White */
+  --bg-surface: #FFFFFF;
+  /* Pure White */
+  --bg-surface-hover: #F5F1EB;
+
+  --text-main: #2C2420;
+  /* Dark Coffee Text */
+  --text-secondary: #5D4037;
+  /* Cocoa/Brown Text */
+  --text-muted: #8D6E63;
+  /* Muted Brown */
+
+  --primary: #4A3728;
+  /* Deep Coffee (Action Buttons) */
+  --primary-foreground: #FFFFFF;
+
+  --secondary: #C5A572;
+  /* Muted Gold (Highlights) */
+  --secondary-foreground: #2C2420;
+
+  --border-subtle: #E6DFD5;
+  /* Light Beige Border */
+  --border-strong: #A1887F;
+  /* Taupe Border */
+
+  --status-success-bg: #E8F5E9;
+  --status-success-text: #2E7D32;
+
+  --status-error-bg: #FFEBEE;
+  --status-error-text: #C62828;
+
+  --shadow-color: rgba(74, 55, 40, 0.08);
+  /* Warm Shadow */
+}
+
+[data-theme='dark'] {
+  /* Classic Monochrome / Shadcn-style Dark Mode */
+  --bg-page: #09090b;
+  /* Zinc 950 (Almost Black) */
+  --bg-surface: #18181b;
+  /* Zinc 900 */
+  --bg-surface-hover: #27272a;
+  /* Zinc 800 */
+
+  --text-main: #fafafa;
+  /* Zinc 50 (White) */
+  --text-secondary: #a1a1aa;
+  /* Zinc 400 (Gray) */
+  --text-muted: #71717a;
+  /* Zinc 500 */
+
+  --primary: #fafafa;
+  /* White Action */
+  --primary-foreground: #18181b;
+  /* Black Text on White Button */
+
+  --secondary: #27272a;
+  /* Dark Gray Surface */
+  --secondary-foreground: #fafafa;
+
+  --border-subtle: #27272a;
+  /* Subtle Gray Border */
+  --border-strong: #fafafa;
+  /* White Border Focus */
+
+  --status-success-bg: #14532d;
+  /* Dark Green */
+  --status-success-text: #4ade80;
+  /* Bright Green */
+
+  --status-error-bg: #450a0a;
+  /* Dark Red */
+  --status-error-text: #f87171;
+  /* Bright Red */
+
+  --shadow-color: rgba(0, 0, 0, 0.8);
+}
+
+body {
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-page);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
