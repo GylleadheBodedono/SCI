@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSheetData, appendMultipleRows, getLastRow } from '@/lib/googleSheets';
 import * as XLSX from 'xlsx';
-import { normalizarNomeRestaurante, mapearMotivo } from '@/utils/mappings';
+import { normalizarNomeRestaurante, mapearMotivo, determinarStatusImportacao } from '@/utils/mappings';
 
 const SHEET_NAME = 'Contestações iFood';
 const RANGE = `${SHEET_NAME}!A3:O`;
@@ -182,12 +182,25 @@ export async function POST(request: Request) {
                 // Formatar data
                 const dataFormatada = formatDate(row.dataHora);
 
-                // LOGICA SIMPLIFICADA:
-                // Se VALOR LIQUIDO > 0 = ja teve reembolso = FINALIZADO
-                // Se VALOR LIQUIDO = 0 = aguardando contestacao = AGUARDANDO
-                const teveReembolso = row.valorLiquido > 0;
-                const statusInicial = teveReembolso ? 'FINALIZADO' : 'AGUARDANDO';
+                // NOVA LOGICA: Determina status baseado no "MOTIVO DA IMPOSSIBILIDADE DE CONTESTAR"
+                // - CANCELADO: quando a loja cancelou ou aceitou cancelamento (não faz sentido contestar)
+                // - FINALIZADO: quando iFood já reembolsou
+                // - AGUARDANDO: demais casos (precisa contestar)
+                const statusInicial = determinarStatusImportacao(row.motivoNaoContestar, row.valorLiquido);
                 const valorRecuperado = row.valorLiquido; // Direto da planilha
+
+                // Define data de resolução e resultado baseado no status
+                let dataResolucao = '';
+                let resultado = '';
+
+                if (statusInicial === 'FINALIZADO') {
+                    dataResolucao = dataFormatada;
+                    resultado = 'Reembolso automático iFood';
+                } else if (statusInicial === 'CANCELADO') {
+                    dataResolucao = dataFormatada;
+                    resultado = row.motivoNaoContestar || 'Cancelado pela loja';
+                }
+                // AGUARDANDO: dataResolucao e resultado ficam vazios
 
                 const rowValues = [
                     currentId,                                              // A: ID
@@ -198,8 +211,8 @@ export async function POST(request: Request) {
                     `Importado automaticamente. ${row.motivoNaoContestar || ''}`.trim(), // F: Descricao
                     formatToBRL(row.valorItens),                            // G: Valor = VALOR DOS ITENS (R$)
                     statusInicial,                                          // H: Status
-                    teveReembolso ? dataFormatada : '',                      // I: Data Resolucao (se finalizado)
-                    teveReembolso ? 'Reembolso automatico iFood' : '',       // J: Resultado
+                    dataResolucao,                                          // I: Data Resolucao
+                    resultado,                                              // J: Resultado
                     formatToBRL(valorRecuperado),                           // K: Valor Recuperado = VALOR LIQUIDO (R$)
                     `Contestavel: ${row.contestavel}`,                      // L: Observacoes
                     '',                                                     // M: Anexos

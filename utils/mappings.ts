@@ -1,4 +1,41 @@
 
+// Mapeamento para determinar STATUS na importação baseado no "MOTIVO DA IMPOSSIBILIDADE DE CONTESTAR"
+export const MAPEAMENTO_STATUS_IMPORTACAO: Record<string, 'CANCELADO' | 'FINALIZADO'> = {
+    // CANCELADO - Responsabilidade do restaurante, não faz sentido contestar
+    'Sua loja cancelou o pedido por item indisponível': 'CANCELADO',
+    'Este pedido foi cancelado pela sua loja': 'CANCELADO',
+    'Sua loja aceitou a solicitação do cliente': 'CANCELADO',
+
+    // FINALIZADO - iFood já reembolsou
+    'O cancelamento deste pedido foi analisado e o reembolso já foi aprovado para sua loja': 'FINALIZADO',
+    'O iFood proativamente reembolsou sua loja': 'FINALIZADO',
+};
+
+/**
+ * Determina o status inicial de uma contestação durante a importação
+ * baseado no motivo da impossibilidade de contestar e no valor líquido
+ */
+export function determinarStatusImportacao(
+    motivoNaoContestar: string,
+    valorLiquido: number
+): 'AGUARDANDO' | 'FINALIZADO' | 'CANCELADO' {
+    const motivo = (motivoNaoContestar || '').trim();
+
+    // 1. Verificar mapeamento exato
+    const statusMapeado = MAPEAMENTO_STATUS_IMPORTACAO[motivo];
+    if (statusMapeado) {
+        return statusMapeado;
+    }
+
+    // 2. Fallback: se teve reembolso (valor líquido > 0)
+    if (valorLiquido > 0) {
+        return 'FINALIZADO';
+    }
+
+    // 3. Default: aguardando contestação
+    return 'AGUARDANDO';
+}
+
 export const MAPEAMENTO_MOTIVOS: Record<string, { responsavel: string; motivoEspecifico: string; contestavel: boolean }> = {
     // CLIENTE
     'Cliente ausente': { responsavel: 'Cliente', motivoEspecifico: 'Cliente ausente', contestavel: false },
