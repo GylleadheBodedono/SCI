@@ -1,9 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { DollarSign, Calendar, BarChart2, TrendingUp, Loader2, RefreshCw } from "lucide-react";
+import { DollarSign, Calendar, BarChart2, TrendingUp, TrendingDown, Loader2, RefreshCw } from "lucide-react";
 import DashboardCharts from "@/components/DashboardCharts";
 import DatePicker from "@/components/ui/DatePicker";
+
+interface Variacoes {
+    total: number | null;
+    valorTotal: number | null;
+    valorRecuperado: number | null;
+    valorPerdido: number | null;
+    ticketMedio: number | null;
+}
 
 interface DashboardData {
     total: number;
@@ -12,6 +20,7 @@ interface DashboardData {
     valorPerdido: number;
     recoveryRate: number;
     ticketMedio: number;
+    variacoes?: Variacoes;
     restaurantes: { nome: string; qtd: number; valor: number; recuperado: number; marca: string }[];
     topRestaurantes: { nome: string; qtd: number; valor: number }[];
     topMotivos: { nome: string; qtd: number; valor: number }[];
@@ -25,10 +34,36 @@ const FILTROS_RAPIDOS = [
     { label: "Todos", dias: null },
 ];
 
+// Componente para mostrar variação percentual
+const VariacaoIndicador = ({ valor, invertido = false }: { valor: number | null | undefined; invertido?: boolean }) => {
+    if (valor === null || valor === undefined) return null;
+
+    // Para "Perdido", uma diminuição é positiva (invertido)
+    const isPositivo = invertido ? valor < 0 : valor > 0;
+    const isNegativo = invertido ? valor > 0 : valor < 0;
+
+    const corClasse = isPositivo
+        ? "text-[var(--status-success-text)]"
+        : isNegativo
+            ? "text-[var(--status-error-text)]"
+            : "text-[var(--text-muted)]";
+
+    const Icon = valor > 0 ? TrendingUp : TrendingDown;
+
+    return (
+        <div className={`flex items-center gap-1 mt-1 ${corClasse}`}>
+            <Icon className="w-3 h-3" />
+            <span className="text-xs font-medium">
+                {valor > 0 ? "+" : ""}{valor.toFixed(1)}% vs período anterior
+            </span>
+        </div>
+    );
+};
+
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [filtroAtivo, setFiltroAtivo] = useState<number | null>(null); // null = todos
+    const [filtroAtivo, setFiltroAtivo] = useState<number | null>(null);
     const [dataInicio, setDataInicio] = useState("");
     const [dataFim, setDataFim] = useState("");
     const [filtroPersonalizado, setFiltroPersonalizado] = useState(false);
@@ -107,6 +142,8 @@ export default function DashboardPage() {
         }
         return "Todo o período";
     };
+
+    // Sempre mostrar variações (quando sem filtro, compara últimos 30 dias vs 30 dias anteriores)
 
     if (loading && !data) {
         return (
@@ -204,37 +241,56 @@ export default function DashboardPage() {
 
             {/* Top KPIs Row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+                {/* Total Contestado */}
                 <div className="bg-[var(--primary)] text-[var(--primary-foreground)] p-4 md:p-6 rounded-xl shadow-lg relative overflow-hidden group">
                     <div className="relative z-10">
                         <p className="text-[10px] md:text-xs uppercase font-medium opacity-80 mb-1">Total Contestado</p>
                         <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold font-serif truncate">
                             R$ {data.valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                         </h3>
+                        {data.variacoes?.valorTotal !== null && data.variacoes?.valorTotal !== undefined && (
+                            <div className="flex items-center gap-1 mt-1 opacity-90">
+                                {data.variacoes.valorTotal > 0 ? (
+                                    <TrendingUp className="w-3 h-3" />
+                                ) : (
+                                    <TrendingDown className="w-3 h-3" />
+                                )}
+                                <span className="text-xs font-medium">
+                                    {data.variacoes.valorTotal > 0 ? "+" : ""}{data.variacoes.valorTotal.toFixed(1)}% vs anterior
+                                </span>
+                            </div>
+                        )}
                     </div>
                     <div className="absolute right-[-10px] top-[-10px] opacity-10 group-hover:opacity-20 transition-opacity">
                         <DollarSign className="w-16 md:w-24 h-16 md:h-24" />
                     </div>
                 </div>
 
+                {/* Recuperado */}
                 <div className="bg-[var(--bg-surface)] p-4 md:p-6 rounded-xl shadow-sm border border-l-4 border-l-[var(--status-success-text)] border-[var(--border-subtle)]">
                     <p className="text-[10px] md:text-xs uppercase font-bold text-[var(--status-success-text)] mb-1">Recuperado</p>
                     <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-[var(--status-success-text)] font-serif truncate">
                         R$ {data.valorRecuperado.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </h3>
+                    {<VariacaoIndicador valor={data.variacoes?.valorRecuperado} />}
                 </div>
 
+                {/* Perdido */}
                 <div className="bg-[var(--bg-surface)] p-4 md:p-6 rounded-xl shadow-sm border border-l-4 border-l-[var(--status-error-text)] border-[var(--border-subtle)]">
                     <p className="text-[10px] md:text-xs uppercase font-bold text-[var(--status-error-text)] mb-1">Perdido</p>
                     <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-[var(--status-error-text)] font-serif truncate">
                         R$ {data.valorPerdido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </h3>
+                    {<VariacaoIndicador valor={data.variacoes?.valorPerdido} invertido />}
                 </div>
 
+                {/* Ticket Médio */}
                 <div className="bg-[var(--bg-surface)] p-4 md:p-6 rounded-xl shadow-sm border border-l-4 border-l-[var(--primary)] border-[var(--border-subtle)]">
                     <p className="text-[10px] md:text-xs uppercase font-bold text-[var(--text-main)] mb-1">Ticket Médio</p>
                     <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-[var(--text-main)] font-serif truncate">
                         R$ {data.ticketMedio.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </h3>
+                    {<VariacaoIndicador valor={data.variacoes?.ticketMedio} />}
                 </div>
             </div>
 
@@ -249,6 +305,7 @@ export default function DashboardPage() {
                         R$ {data.valorPerdido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </h3>
                     <p className="text-[10px] md:text-xs text-[var(--text-muted)] mt-1">Valor acumulado no período</p>
+                    {<VariacaoIndicador valor={data.variacoes?.valorPerdido} invertido />}
                 </div>
 
                 <div className="bg-[var(--bg-surface)] p-4 md:p-6 rounded-xl shadow-sm border border-[var(--border-subtle)]">
